@@ -2,6 +2,8 @@ gl-scatter2d
 ============
 WebGL 2D scatter plots for lots of points
 
+This version draws scatter points directly, rather than going through the quadtree creation and splatter calculations.
+
 ## Example
 For now, see [`gl-plot2d`](https://github.com/gl-vis/gl-plot2d).
 
