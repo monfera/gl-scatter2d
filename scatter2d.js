@@ -1,5 +1,7 @@
 'use strict'
 
+var old = false
+
 var createShader = require('gl-shader')
 var createBuffer = require('gl-buffer')
 var bsearch = require('binary-search-bounds')
@@ -11,11 +13,10 @@ var SHADERS = require('./lib/shader')
 
 module.exports = createScatter2D
 
-function Scatter2D(plot, offsetBuffer, pickBuffer, weightBuffer, shader, pickShader) {
+function Scatter2D(plot, offsetBuffer, pickBuffer, shader, pickShader) {
   this.plot           = plot
   this.offsetBuffer   = offsetBuffer
   this.pickBuffer     = pickBuffer
-  this.weightBuffer   = weightBuffer
   this.shader         = shader
   this.pickShader     = pickShader
   this.scales         = []
@@ -66,19 +67,35 @@ proto.update = function(options) {
   var packed        = pool.mallocFloat32(data.length)
   var packedId      = pool.mallocInt32(data.length>>>1)
   packed.set(data)
-  var packedW       = pool.mallocFloat32(data.length)
+  //var packedW       = pool.mallocFloat32(data.length)
   this.points       = data
-  this.scales       = snapPoints(packed, packedId, packedW, this.bounds)
+
+  if(old) {
+    this.scales       = snapPoints(packed, packedId, packedW, this.bounds)
+  } else {
+    this.scales =  [{count: data.length>>>1, offset: 0, pixelSize: 1}]
+    var min = 0
+    var max = 10
+    this.bounds = [min, min, max, max]
+    for(var i = 0; i < data.length>>>1; i++) {
+      packedId[i] = i
+      //packedW[i] = 1
+    }
+    for(var i = 0; i < data.length; i++) {
+      packed[i] = (packed[i] - min) / (max - min)
+    }
+  }
+
   this.offsetBuffer.update(packed)
   this.pickBuffer.update(packedId)
-  this.weightBuffer.update(packedW)
+  //this.weightBuffer.update(packedW)
   var xCoords      = pool.mallocFloat32(data.length>>>1)
   for(var i=0,j=0; i<data.length; i+=2,++j) {
     xCoords[j] = packed[i]
   }
   pool.free(packedId)
   pool.free(packed)
-  pool.free(packedW)
+  //pool.free(packedW)
 
   this.xCoords = xCoords
 
@@ -215,8 +232,8 @@ proto.draw = (function() {
     shader.uniforms.matrix      = MATRIX
     shader.uniforms.color       = this.color
     shader.uniforms.borderColor = this.borderColor
-    shader.uniforms.pointSize   = pixelRatio * (size + borderSize)
-    shader.uniforms.useWeight   = 1
+    shader.uniforms.pointSize   = pixelRatio * (size + borderSize) * Math.sqrt(1 / pixelSize / 100) / 2
+    //shader.uniforms.useWeight   = 1
 
     if(this.borderSize === 0) {
       shader.uniforms.centerFraction = 2.0;
@@ -227,8 +244,8 @@ proto.draw = (function() {
     offsetBuffer.bind()
     shader.attributes.position.pointer()
 
-    this.weightBuffer.bind()
-    shader.attributes.weight.pointer()
+    //this.weightBuffer.bind()
+    //shader.attributes.weight.pointer()
 
     var xCoords = this.xCoords
     var xStart = (dataBox[0] - bounds[0] - pixelSize * size * pixelRatio) / boundX
@@ -242,19 +259,24 @@ proto.draw = (function() {
         continue
       }
 
-      var intervalStart = lod.offset
-      var intervalEnd   = lod.count + intervalStart
+      if(old) {
+        var intervalStart = lod.offset
+        var intervalEnd   = lod.count + intervalStart
 
-      var startOffset = bsearch.ge(xCoords, xStart, intervalStart, intervalEnd-1)
-      var endOffset   = bsearch.lt(xCoords, xEnd, startOffset, intervalEnd-1)+1
+        var startOffset = bsearch.ge(xCoords, xStart, intervalStart, intervalEnd-1)
+        var endOffset   = bsearch.lt(xCoords, xEnd, startOffset, intervalEnd-1)+1
 
-      if(endOffset > startOffset) {
-        gl.drawArrays(gl.POINTS, startOffset, endOffset - startOffset)
+        if(endOffset > startOffset) {
+          gl.drawArrays(gl.POINTS, startOffset, endOffset - startOffset)
+        }
+
+      } else {
+        gl.drawArrays(gl.POINTS, 0, lod.count)
       }
 
       if(firstLevel) {
         firstLevel = false
-        shader.uniforms.useWeight = 0
+        //shader.uniforms.useWeight = 0
       }
     }
   }
@@ -279,12 +301,12 @@ function createScatter2D(plot, options) {
   var gl     = plot.gl
   var buffer = createBuffer(gl)
   var pickBuffer = createBuffer(gl)
-  var weightBuffer = createBuffer(gl)
+  //var weightBuffer = createBuffer(gl)
   var shader = createShader(gl, SHADERS.pointVertex, SHADERS.pointFragment)
   var pickShader = createShader(gl, SHADERS.pickVertex, SHADERS.pickFragment)
 
   var result = new Scatter2D(
-    plot, buffer, pickBuffer, weightBuffer, shader, pickShader)
+    plot, buffer, pickBuffer, shader, pickShader)
   result.update(options)
 
   //Register with plot
