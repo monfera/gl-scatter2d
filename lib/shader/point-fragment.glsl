@@ -18,5 +18,4 @@ void main() {
     } else {
       gl_FragColor = color;
     }
-
 }
