@@ -208,7 +208,7 @@ proto.draw = (function() {
     shader.uniforms.matrix      = MATRIX
     shader.uniforms.color       = this.color
     shader.uniforms.borderColor = this.borderColor
-    shader.uniforms.pointSize   = pixelRatio * (size + borderSize) * Math.sqrt(1 / pixelSize / 100) / 2
+    shader.uniforms.pointSize   = pixelRatio * (size + borderSize) * /*Math.sqrt*/(1 / pixelSize / 100) /*/ 2*/
 
     if(this.borderSize === 0) {
       shader.uniforms.centerFraction = 2.0
