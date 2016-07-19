@@ -1,11 +1,7 @@
 'use strict'
 
-var old = false
-
 var createShader = require('gl-shader')
 var createBuffer = require('gl-buffer')
-var bsearch = require('binary-search-bounds')
-var snapPoints = require('snap-points-2d')
 
 var pool = require('typedarray-pool')
 
@@ -67,35 +63,27 @@ proto.update = function(options) {
   var packed        = pool.mallocFloat32(data.length)
   var packedId      = pool.mallocInt32(data.length>>>1)
   packed.set(data)
-  //var packedW       = pool.mallocFloat32(data.length)
   this.points       = data
 
-  if(old) {
-    this.scales       = snapPoints(packed, packedId, packedW, this.bounds)
-  } else {
-    this.scales =  [{count: data.length>>>1, offset: 0, pixelSize: 1}]
-    var min = 0
-    var max = 10
-    this.bounds = [min, min, max, max]
-    for(var i = 0; i < data.length>>>1; i++) {
-      packedId[i] = i
-      //packedW[i] = 1
-    }
-    for(var i = 0; i < data.length; i++) {
-      packed[i] = (packed[i] - min) / (max - min)
-    }
+  this.scales =  [{count: data.length>>>1, offset: 0, pixelSize: 1}]
+  var min = 0
+  var max = 10
+  this.bounds = [min, min, max, max]
+  for(var i = 0; i < data.length>>>1; i++) {
+    packedId[i] = i
+  }
+  for(var i = 0; i < data.length; i++) {
+    packed[i] = (packed[i] - min) / (max - min)
   }
 
   this.offsetBuffer.update(packed)
   this.pickBuffer.update(packedId)
-  //this.weightBuffer.update(packedW)
   var xCoords      = pool.mallocFloat32(data.length>>>1)
   for(var i=0,j=0; i<data.length; i+=2,++j) {
     xCoords[j] = packed[i]
   }
   pool.free(packedId)
   pool.free(packed)
-  //pool.free(packedW)
 
   this.xCoords = xCoords
 
@@ -134,8 +122,6 @@ return function(pickOffset) {
   var screenY = (viewBox[3] - viewBox[1]) * pixelRatio / plot.pixelRatio
 
   var pixelSize   = Math.min(dataX / screenX, dataY / screenY)
-  var targetScale = pixelSize
-
 
   MATRIX[0] = 2.0 * boundX / dataX
   MATRIX[4] = 2.0 * boundY / dataY
@@ -166,25 +152,13 @@ return function(pickOffset) {
   pickBuffer.bind()
   shader.attributes.pickId.pointer(gl.UNSIGNED_BYTE)
 
-  var xCoords = this.xCoords
-  var xStart = (dataBox[0] - bounds[0] - pixelSize * size * pixelRatio) / boundX
-  var xEnd   = (dataBox[2] - bounds[0] + pixelSize * size * pixelRatio) / boundX
-
   for(var scaleNum = scales.length-1; scaleNum >= 0; --scaleNum) {
     var lod     = scales[scaleNum]
     if(lod.pixelSize < pixelSize && scaleNum > 1) {
       continue
     }
 
-    var intervalStart = lod.offset
-    var intervalEnd   = lod.count + intervalStart
-
-    var startOffset = bsearch.ge(xCoords, xStart, intervalStart, intervalEnd-1)
-    var endOffset   = bsearch.lt(xCoords, xEnd, startOffset, intervalEnd-1)+1
-
-    if(endOffset > startOffset) {
-      gl.drawArrays(gl.POINTS, startOffset, endOffset - startOffset)
-    }
+    gl.drawArrays(gl.POINTS, 0, lod.count)
   }
 
   return pickOffset + this.pointCount
@@ -221,7 +195,6 @@ proto.draw = (function() {
     var screenY = viewBox[3] - viewBox[1]
 
     var pixelSize   = Math.min(dataX / screenX, dataY / screenY)
-    var targetScale = pixelSize
 
     MATRIX[0] = 2.0 * boundX / dataX
     MATRIX[4] = 2.0 * boundY / dataY
@@ -233,7 +206,6 @@ proto.draw = (function() {
     shader.uniforms.color       = this.color
     shader.uniforms.borderColor = this.borderColor
     shader.uniforms.pointSize   = pixelRatio * (size + borderSize) * Math.sqrt(1 / pixelSize / 100) / 2
-    //shader.uniforms.useWeight   = 1
 
     if(this.borderSize === 0) {
       shader.uniforms.centerFraction = 2.0;
@@ -244,13 +216,6 @@ proto.draw = (function() {
     offsetBuffer.bind()
     shader.attributes.position.pointer()
 
-    //this.weightBuffer.bind()
-    //shader.attributes.weight.pointer()
-
-    var xCoords = this.xCoords
-    var xStart = (dataBox[0] - bounds[0] - pixelSize * size * pixelRatio) / boundX
-    var xEnd   = (dataBox[2] - bounds[0] + pixelSize * size * pixelRatio) / boundX
-
     var firstLevel = true
 
     for(var scaleNum = scales.length-1; scaleNum >= 0; --scaleNum) {
@@ -259,24 +224,10 @@ proto.draw = (function() {
         continue
       }
 
-      if(old) {
-        var intervalStart = lod.offset
-        var intervalEnd   = lod.count + intervalStart
-
-        var startOffset = bsearch.ge(xCoords, xStart, intervalStart, intervalEnd-1)
-        var endOffset   = bsearch.lt(xCoords, xEnd, startOffset, intervalEnd-1)+1
-
-        if(endOffset > startOffset) {
-          gl.drawArrays(gl.POINTS, startOffset, endOffset - startOffset)
-        }
-
-      } else {
-        gl.drawArrays(gl.POINTS, 0, lod.count)
-      }
+      gl.drawArrays(gl.POINTS, 0, lod.count)
 
       if(firstLevel) {
         firstLevel = false
-        //shader.uniforms.useWeight = 0
       }
     }
   }
@@ -301,7 +252,6 @@ function createScatter2D(plot, options) {
   var gl     = plot.gl
   var buffer = createBuffer(gl)
   var pickBuffer = createBuffer(gl)
-  //var weightBuffer = createBuffer(gl)
   var shader = createShader(gl, SHADERS.pointVertex, SHADERS.pointFragment)
   var pickShader = createShader(gl, SHADERS.pickVertex, SHADERS.pickFragment)
 
