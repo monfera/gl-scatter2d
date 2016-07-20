@@ -15,7 +15,6 @@ function Scatter2D(plot, offsetBuffer, pickBuffer, shader, pickShader) {
   this.pickBuffer     = pickBuffer
   this.shader         = shader
   this.pickShader     = pickShader
-  this.scales         = []
   this.size           = 12.0
   this.borderSize     = 1.0
   this.pointCount     = 0
@@ -68,7 +67,6 @@ proto.update = function(options) {
   packed.set(data)
   this.points       = data
 
-  this.scales = [{count: data.length >>> 1, offset: 0, pixelSize: 1}]
   var min = 0
   var max = 10
   this.bounds = [min, min, max, max]
@@ -102,7 +100,6 @@ proto.drawPick = (function() {
 return function(pickOffset) {
   var plot          = this.plot
   var shader        = this.pickShader
-  var scales        = this.scales
   var offsetBuffer  = this.offsetBuffer
   var pickBuffer    = this.pickBuffer
   var bounds        = this.bounds
@@ -155,14 +152,7 @@ return function(pickOffset) {
   pickBuffer.bind()
   shader.attributes.pickId.pointer(gl.UNSIGNED_BYTE)
 
-  for(var scaleNum = scales.length-1; scaleNum >= 0; --scaleNum) {
-    var lod = scales[scaleNum]
-    if(lod.pixelSize < pixelSize && scaleNum > 1) {
-      continue
-    }
-
-    gl.drawArrays(gl.POINTS, 0, lod.count)
-  }
+  gl.drawArrays(gl.POINTS, 0, this.pointCount)
 
   return pickOffset + this.pointCount
 }
@@ -176,7 +166,6 @@ proto.draw = (function() {
   return function() {
     var plot          = this.plot
     var shader        = this.shader
-    var scales        = this.scales
     var offsetBuffer  = this.offsetBuffer
     var bounds        = this.bounds
     var size          = this.size
@@ -219,20 +208,7 @@ proto.draw = (function() {
     offsetBuffer.bind()
     shader.attributes.position.pointer()
 
-    var firstLevel = true
-
-    for(var scaleNum = scales.length-1; scaleNum >= 0; --scaleNum) {
-      var lod = scales[scaleNum]
-      if(lod.pixelSize < pixelSize && scaleNum > 1) {
-        continue
-      }
-
-      gl.drawArrays(gl.POINTS, 0, lod.count)
-
-      if(firstLevel) {
-        firstLevel = false
-      }
-    }
+    gl.drawArrays(gl.POINTS, 0, this.pointCount)
   }
 })()
 
