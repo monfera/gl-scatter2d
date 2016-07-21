@@ -23,7 +23,6 @@ function Scatter2D(plot, offsetBuffer, pickBuffer, shader, pickShader) {
   this.bounds         = [Infinity, Infinity, -Infinity, -Infinity]
   this.pickOffset     = 0
   this.points         = null
-  this.xCoords        = null
 }
 
 var proto = Scatter2D.prototype
@@ -33,15 +32,12 @@ proto.dispose = function() {
   this.pickShader.dispose()
   this.offsetBuffer.dispose()
   this.pickBuffer.dispose()
-  if(this.xCoords) {
-    pool.free(this.xCoords)
-  }
   this.plot.removeObject(this)
 }
 
 proto.update = function(options) {
 
-  var i, j
+  var i
 
   options = options || {}
 
@@ -58,9 +54,6 @@ proto.update = function(options) {
   this.borderColor  = dflt('borderColor', [0, 0, 0, 1]).slice()
 
   //Update point data
-  if(this.xCoords) {
-    pool.free(this.xCoords)
-  }
   var data          = options.positions
   var packed        = pool.mallocFloat32(data.length)
   var packedId      = pool.mallocInt32(data.length >>> 1)
@@ -79,14 +72,8 @@ proto.update = function(options) {
 
   this.offsetBuffer.update(packed)
   this.pickBuffer.update(packedId)
-  var xCoords = pool.mallocFloat32(data.length >>> 1)
-  for(i = 0, j = 0; i < data.length; i += 2, ++j) {
-    xCoords[j] = packed[i]
-  }
   pool.free(packedId)
   pool.free(packed)
-
-  this.xCoords = xCoords
 
   this.pointCount = data.length >>> 1
   this.pickOffset = 0
@@ -107,7 +94,6 @@ return function(pickOffset) {
   var borderSize    = this.borderSize
   var gl            = plot.gl
   var pixelRatio    = plot.pickPixelRatio
-  var viewBox       = plot.viewBox
   var dataBox       = plot.dataBox
 
   if(this.pointCount === 0) {
@@ -118,10 +104,6 @@ return function(pickOffset) {
   var boundY  = bounds[3] - bounds[1]
   var dataX   = dataBox[2] - dataBox[0]
   var dataY   = dataBox[3] - dataBox[1]
-  var screenX = (viewBox[2] - viewBox[0]) * pixelRatio / plot.pixelRatio
-  var screenY = (viewBox[3] - viewBox[1]) * pixelRatio / plot.pixelRatio
-
-  var pixelSize = Math.min(dataX / screenX, dataY / screenY)
 
   MATRIX[0] = 2.0 * boundX / dataX
   MATRIX[4] = 2.0 * boundY / dataY
