@@ -101,29 +101,23 @@ return function(pickOffset) {
 
   var pick = pickOffset !== void(0)
 
-  var plot          = this.plot
   var shader        = pick ? this.pickShader : this.shader
-  var offsetBuffer  = this.offsetBuffer
-  var bounds        = this.bounds
-  var size          = this.size
-  var borderSize    = this.borderSize
-  var gl            = plot.gl
-  var pixelRatio    = plot.pickPixelRatio
-  var dataBox       = plot.dataBox
+  var gl            = this.plot.gl
+  var dataBox       = this.plot.dataBox
 
   if(this.pointCount === 0) {
     return pickOffset
   }
 
-  var boundX  = bounds[2] - bounds[0]
-  var boundY  = bounds[3] - bounds[1]
+  var boundX  = this.bounds[2] - this.bounds[0]
+  var boundY  = this.bounds[3] - this.bounds[1]
   var dataX   = dataBox[2] - dataBox[0]
   var dataY   = dataBox[3] - dataBox[1]
 
   MATRIX[0] = 2.0 * boundX / dataX
   MATRIX[4] = 2.0 * boundY / dataY
-  MATRIX[6] = 2.0 * (bounds[0] - dataBox[0]) / dataX - 1.0
-  MATRIX[7] = 2.0 * (bounds[1] - dataBox[1]) / dataY - 1.0
+  MATRIX[6] = 2.0 * (this.bounds[0] - dataBox[0]) / dataX - 1.0
+  MATRIX[7] = 2.0 * (this.bounds[1] - dataBox[1]) / dataY - 1.0
 
   shader.bind()
   shader.uniforms.matrix      = MATRIX
@@ -132,17 +126,12 @@ return function(pickOffset) {
 
   var visiblePointCountEstimate = count(this.points, dataBox)
 
-  var basicPointSize =  pixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
+  var basicPointSize =  this.plot.pickPixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
   shader.uniforms.pointCloud = shader.uniforms.pointSize < 5
-  shader.uniforms.pointSize = basicPointSize * (shader.uniforms.pointCloud ? 1 : (size + borderSize) / size)
+  shader.uniforms.pointSize = basicPointSize * (shader.uniforms.pointCloud ? 1 : (this.size + this.borderSize) / this.size)
+  shader.uniforms.centerFraction = this.borderSize === 0 ? 2.0 : this.size / (this.size + this.borderSize + 1.25)
 
-  if(this.borderSize === 0) {
-    shader.uniforms.centerFraction = 2.0
-  } else {
-    shader.uniforms.centerFraction = size / (size + borderSize + 1.25)
-  }
-
-  offsetBuffer.bind()
+  this.offsetBuffer.bind()
   shader.attributes.position.pointer()
 
   if(pick) {
