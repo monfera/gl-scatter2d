@@ -19,6 +19,6 @@ void main() {
     // saturation 'jumps', which is disturbing or confusing
     gl_PointSize = pointSize * 0.886 * ((10.0 + rand(position)) / 10.0);
   } else {
-    gl_PointSize = pointSize;
+    gl_PointSize = pointSize * ((10.0 + rand(position)) / 10.0);
   }
 }
