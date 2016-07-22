@@ -114,35 +114,36 @@ return function(pickOffset) {
   var dataX   = dataBox[2] - dataBox[0]
   var dataY   = dataBox[3] - dataBox[1]
 
+  var visiblePointCountEstimate = count(this.points, dataBox)
+  var basicPointSize =  this.plot.pickPixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
+
   MATRIX[0] = 2.0 * boundX / dataX
   MATRIX[4] = 2.0 * boundY / dataY
   MATRIX[6] = 2.0 * (this.bounds[0] - dataBox[0]) / dataX - 1.0
   MATRIX[7] = 2.0 * (this.bounds[1] - dataBox[1]) / dataY - 1.0
 
+  this.offsetBuffer.bind()
+
   shader.bind()
+  shader.attributes.position.pointer()
   shader.uniforms.matrix      = MATRIX
   shader.uniforms.color       = this.color
   shader.uniforms.borderColor = this.borderColor
-
-  var visiblePointCountEstimate = count(this.points, dataBox)
-
-  var basicPointSize =  this.plot.pickPixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
   shader.uniforms.pointCloud = shader.uniforms.pointSize < 5
   shader.uniforms.pointSize = basicPointSize * (shader.uniforms.pointCloud ? 1 : (this.size + this.borderSize) / this.size)
   shader.uniforms.centerFraction = this.borderSize === 0 ? 2.0 : this.size / (this.size + this.borderSize + 1.25)
 
-  this.offsetBuffer.bind()
-  shader.attributes.position.pointer()
-
   if(pick) {
-    this.pickOffset = pickOffset
+
     PICK_VEC4[0] = ( pickOffset        & 0xff)
     PICK_VEC4[1] = ((pickOffset >> 8)  & 0xff)
     PICK_VEC4[2] = ((pickOffset >> 16) & 0xff)
     PICK_VEC4[3] = ((pickOffset >> 24) & 0xff)
-    shader.uniforms.pickOffset = PICK_VEC4
+
     this.pickBuffer.bind()
     shader.attributes.pickId.pointer(gl.UNSIGNED_BYTE)
+    shader.uniforms.pickOffset = PICK_VEC4
+    this.pickOffset = pickOffset
   }
   
   gl.drawArrays(gl.POINTS, 0, this.pointCount)
