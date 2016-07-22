@@ -1,21 +1,20 @@
-precision lowp float;
+precision mediump float;
 
 uniform vec4 color, borderColor;
 uniform float centerFraction;
-
-varying float simplify;
+uniform float pointCloud;
 
 void main() {
   float radius;
   vec4 baseColor;
-  if(simplify == 1.0) { // true
-    radius = length(2.0*gl_PointCoord.xy-1.0);
+  if(pointCloud != 0.0) { // pointCloud is truthy
+    gl_FragColor = color;
+  } else {
+    radius = length(2.0 * gl_PointCoord.xy - 1.0);
     if(radius > 1.0) {
       discard;
     }
     baseColor = mix(borderColor, color, step(radius, centerFraction));
     gl_FragColor = vec4(baseColor.rgb * baseColor.a, baseColor.a);
-    } else {
-      gl_FragColor = color;
-    }
+  }
 }
