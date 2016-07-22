@@ -189,8 +189,9 @@ proto.draw = (function() {
 
     var visiblePointCountEstimate = count(this.points, dataBox)
 
-    shader.uniforms.pointSize = pixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
+    var basicPointSize =  pixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
     shader.uniforms.pointCloud = shader.uniforms.pointSize < 5
+    shader.uniforms.pointSize = basicPointSize * (shader.uniforms.pointCloud ? 1 : (size + borderSize) / size)
 
     if(this.borderSize === 0) {
       shader.uniforms.centerFraction = 2.0
