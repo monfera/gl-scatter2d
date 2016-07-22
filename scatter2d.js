@@ -86,10 +86,10 @@ proto.drawPick = (function() {
   var PICK_VEC4 = [0, 0, 0, 0]
 return function(pickOffset) {
 
-  var simpleDraw = pickOffset === void(0)
+  var pick = pickOffset !== void(0)
 
   var plot          = this.plot
-  var shader        = simpleDraw ? this.shader : this.pickShader
+  var shader        = pick ? this.pickShader : this.shader
   var offsetBuffer  = this.offsetBuffer
   var bounds        = this.bounds
   var size          = this.size
@@ -112,21 +112,10 @@ return function(pickOffset) {
   MATRIX[6] = 2.0 * (bounds[0] - dataBox[0]) / dataX - 1.0
   MATRIX[7] = 2.0 * (bounds[1] - dataBox[1]) / dataY - 1.0
 
-  if(!simpleDraw) {
-    this.pickOffset = pickOffset
-  }
-  PICK_VEC4[0] = ( pickOffset        & 0xff)
-  PICK_VEC4[1] = ((pickOffset >> 8)  & 0xff)
-  PICK_VEC4[2] = ((pickOffset >> 16) & 0xff)
-  PICK_VEC4[3] = ((pickOffset >> 24) & 0xff)
-
   shader.bind()
   shader.uniforms.matrix      = MATRIX
   shader.uniforms.color       = this.color
   shader.uniforms.borderColor = this.borderColor
-  if(!simpleDraw) {
-    shader.uniforms.pickOffset = PICK_VEC4
-  }
 
   var visiblePointCountEstimate = count(this.points, dataBox)
 
@@ -142,13 +131,20 @@ return function(pickOffset) {
 
   offsetBuffer.bind()
   shader.attributes.position.pointer()
-  if(!simpleDraw) {
+  if(pick) {
+    this.pickOffset = pickOffset
+    PICK_VEC4[0] = ( pickOffset        & 0xff)
+    PICK_VEC4[1] = ((pickOffset >> 8)  & 0xff)
+    PICK_VEC4[2] = ((pickOffset >> 16) & 0xff)
+    PICK_VEC4[3] = ((pickOffset >> 24) & 0xff)
+    shader.uniforms.pickOffset = PICK_VEC4
     this.pickBuffer.bind()
     shader.attributes.pickId.pointer(gl.UNSIGNED_BYTE)
   }
+  
   gl.drawArrays(gl.POINTS, 0, this.pointCount)
 
-  if(!simpleDraw) {
+  if(pick) {
     return pickOffset + this.pointCount
   }
 }
