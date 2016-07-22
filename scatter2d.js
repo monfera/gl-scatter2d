@@ -79,7 +79,20 @@ proto.update = function(options) {
   this.pickOffset = 0
 }
 
-proto.drawPick = (function() {
+function count(points, dataBox) {
+  var visiblePointCountEstimate = 0
+  var length = points.length >>> 1
+  var i
+  for(i = 0; i < length; i++) {
+    var x = points[i * 2]
+    var y = points[i * 2 + 1]
+    if(x >= dataBox[0] && x <= dataBox[2] && y >= dataBox[1] && y <= dataBox[3])
+      visiblePointCountEstimate++
+  }
+  return visiblePointCountEstimate
+}
+
+proto.unifiedDraw = (function() {
   var MATRIX = [1, 0, 0,
                 0, 1, 0,
                 0, 0, 1]
@@ -124,13 +137,14 @@ return function(pickOffset) {
   shader.uniforms.pointSize = basicPointSize * (shader.uniforms.pointCloud ? 1 : (size + borderSize) / size)
 
   if(this.borderSize === 0) {
-    shader.uniforms.centerFraction = 2.0;
+    shader.uniforms.centerFraction = 2.0
   } else {
     shader.uniforms.centerFraction = size / (size + borderSize + 1.25)
   }
 
   offsetBuffer.bind()
   shader.attributes.position.pointer()
+
   if(pick) {
     this.pickOffset = pickOffset
     PICK_VEC4[0] = ( pickOffset        & 0xff)
@@ -144,26 +158,12 @@ return function(pickOffset) {
   
   gl.drawArrays(gl.POINTS, 0, this.pointCount)
 
-  if(pick) {
-    return pickOffset + this.pointCount
-  }
+  return pickOffset + this.pointCount
 }
 })()
 
-function count(points, dataBox) {
-  var visiblePointCountEstimate = 0
-  var length = points.length >>> 1
-  var i
-  for(i = 0; i < length; i++) {
-    var x = points[i * 2]
-    var y = points[i * 2 + 1]
-    if(x >= dataBox[0] && x <= dataBox[2] && y >= dataBox[1] && y <= dataBox[3])
-      visiblePointCountEstimate++
-  }
-  return visiblePointCountEstimate
-}
-
-proto.draw = proto.drawPick
+proto.draw = proto.unifiedDraw
+proto.drawPick = proto.unifiedDraw
 
 proto.pick = function(x, y, value) {
   var pickOffset = this.pickOffset
