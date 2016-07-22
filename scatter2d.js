@@ -120,8 +120,13 @@ return function(pickOffset) {
   shader.uniforms.matrix      = MATRIX
   shader.uniforms.color       = this.color
   shader.uniforms.borderColor = this.borderColor
-  shader.uniforms.pointSize   = pixelRatio * (size + borderSize)
   shader.uniforms.pickOffset  = PICK_VEC4
+
+  var visiblePointCountEstimate = count(this.points, dataBox)
+
+  var basicPointSize =  pixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
+  shader.uniforms.pointCloud = shader.uniforms.pointSize < 5
+  shader.uniforms.pointSize = basicPointSize * (shader.uniforms.pointCloud ? 1 : (size + borderSize) / size)
 
   if(this.borderSize === 0) {
     shader.uniforms.centerFraction = 2.0;
