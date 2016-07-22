@@ -133,12 +133,24 @@ return function(pickOffset) {
   shader.attributes.position.pointer()
   pickBuffer.bind()
   shader.attributes.pickId.pointer(gl.UNSIGNED_BYTE)
-
   gl.drawArrays(gl.POINTS, 0, this.pointCount)
 
   return pickOffset + this.pointCount
 }
 })()
+
+function count(points, dataBox) {
+  var visiblePointCountEstimate = 0
+  var length = points.length >>> 1
+  var i
+  for(i = 0; i < length; i++) {
+    var x = points[i * 2]
+    var y = points[i * 2 + 1]
+    if(x >= dataBox[0] && x <= dataBox[2] && y >= dataBox[1] && y <= dataBox[3])
+      visiblePointCountEstimate++
+  }
+  return visiblePointCountEstimate
+}
 
 proto.draw = (function() {
   var MATRIX = [1, 0, 0,
@@ -154,7 +166,6 @@ proto.draw = (function() {
     var borderSize    = this.borderSize
     var gl            = plot.gl
     var pixelRatio    = plot.pixelRatio
-    var viewBox       = plot.viewBox
     var dataBox       = plot.dataBox
 
     if(this.pointCount === 0) {
@@ -165,10 +176,6 @@ proto.draw = (function() {
     var boundY  = bounds[3] - bounds[1]
     var dataX   = dataBox[2] - dataBox[0]
     var dataY   = dataBox[3] - dataBox[1]
-    var screenX = viewBox[2] - viewBox[0]
-    var screenY = viewBox[3] - viewBox[1]
-
-    var pixelSize = Math.min(dataX / screenX, dataY / screenY)
 
     MATRIX[0] = 2.0 * boundX / dataX
     MATRIX[4] = 2.0 * boundY / dataY
@@ -179,7 +186,10 @@ proto.draw = (function() {
     shader.uniforms.matrix      = MATRIX
     shader.uniforms.color       = this.color
     shader.uniforms.borderColor = this.borderColor
-    shader.uniforms.pointSize   = pixelRatio * (size + borderSize) * /*Math.sqrt*/(1 / pixelSize / 100) / 2
+
+    var visiblePointCountEstimate = count(this.points, dataBox)
+
+    shader.uniforms.pointSize = pixelRatio * Math.max(0.1, Math.min(30, 30 / Math.pow(visiblePointCountEstimate, 0.33333)))
 
     if(this.borderSize === 0) {
       shader.uniforms.centerFraction = 2.0

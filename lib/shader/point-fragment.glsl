@@ -8,7 +8,7 @@ varying float simplify;
 void main() {
   float radius;
   vec4 baseColor;
-  if(simplify >= 5.0) {
+  if(simplify == 1.0) { // true
     radius = length(2.0*gl_PointCoord.xy-1.0);
     if(radius > 1.0) {
       discard;
