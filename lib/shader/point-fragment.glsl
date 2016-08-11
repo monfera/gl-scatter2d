@@ -8,7 +8,11 @@ void main() {
   float radius;
   vec4 baseColor;
   if(pointCloud != 0.0) { // pointCloud is truthy
-    gl_FragColor = mix(borderColor, color, centerFraction);
+    if(centerFraction == 2.0) {
+      gl_FragColor = color;
+    } else {
+      gl_FragColor = mix(borderColor, color, centerFraction);
+    }
   } else {
     radius = length(2.0 * gl_PointCoord.xy - 1.0);
     if(radius > 1.0) {

@@ -14,7 +14,7 @@ void main() {
   vec3 hgPosition = matrix * vec3(position, 1);
   gl_Position  = vec4(hgPosition.xy, 0, hgPosition.z);
     // if we don't jitter the point size, overall point cloud
-    // saturation 'jumps' on zooming, which is disturbing or confusing
+    // saturation 'jumps' on zooming, which is disturbing and confusing
   gl_PointSize = pointSize * ((10.0 + rand(position)) / 10.0);
   if(pointCloud != 0.0) { // pointCloud is truthy
     // get the same square surface as circle would be
