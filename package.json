@@ -14,7 +14,7 @@
   "dependencies": {
     "binary-search-bounds": "^2.0.3",
     "gl-buffer": "^2.1.2",
-    "gl-shader": "^4.0.4",
+    "gl-shader": "^4.2.1",
     "glslify": "^2.1.2",
     "snap-points-2d": "^3.0.0",
     "typedarray-pool": "^1.1.0"
