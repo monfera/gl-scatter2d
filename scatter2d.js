@@ -103,28 +103,28 @@ proto.draw = function(pickOffset) {
   var positionBufferHi = this.positionBufferHi
   var positionBufferLo = this.positionBufferLo
   var pickBuffer       = this.pickBuffer
-  var bounds           = this.bounds
+  var fullDataDomains  = this.bounds
   var size             = this.size
   var borderSize       = this.borderSize
   var gl               = plot.gl
   var pixelRatio       = pick ? plot.pickPixelRatio : plot.pixelRatio
   var viewBox          = plot.viewBox
-  var dataBox          = plot.dataBox
+  var visibleDataDomains = plot.dataBox
 
   if(this.pointCount === 0)
     return pickOffset
 
-  var boundX  = bounds[2] - bounds[0]
-  var boundY  = bounds[3] - bounds[1]
-  var dataX   = dataBox[2] - dataBox[0]
-  var dataY   = dataBox[3] - dataBox[1]
+  var fullDataDomainX  = fullDataDomains[2] - fullDataDomains[0]
+  var fullDataDomainY  = fullDataDomains[3] - fullDataDomains[1]
+  var visibleDataDomainX   = visibleDataDomains[2] - visibleDataDomains[0]
+  var visibleDataDomainY   = visibleDataDomains[3] - visibleDataDomains[1]
   var screenX = (viewBox[2] - viewBox[0]) * pixelRatio / plot.pixelRatio
   var screenY = (viewBox[3] - viewBox[1]) * pixelRatio / plot.pixelRatio
 
-  var pixelSize   = Math.min(dataX / screenX, dataY / screenY)
+  var pixelSize = Math.min(visibleDataDomainX / screenX, visibleDataDomainY / screenY)
 
-  var scaleX = 2 * boundX / dataX
-  var scaleY = 2 * boundY / dataY
+  var scaleX = 2 * fullDataDomainX / visibleDataDomainX
+  var scaleY = 2 * fullDataDomainY / visibleDataDomainY
 
   scaleHi[0] = scaleX
   scaleHi[1] = scaleY
@@ -132,8 +132,8 @@ proto.draw = function(pickOffset) {
   scaleLo[0] = scaleX - scaleHi[0]
   scaleLo[1] = scaleY - scaleHi[1]
 
-  var translateX = 2 * (bounds[0] - dataBox[0]) / dataX - 1
-  var translateY = 2 * (bounds[1] - dataBox[1]) / dataY - 1
+  var translateX = 2 * (fullDataDomains[0] - visibleDataDomains[0]) / visibleDataDomainX - 1
+  var translateY = 2 * (fullDataDomains[1] - visibleDataDomains[1]) / visibleDataDomainY - 1
 
   translateHi[0] = translateX
   translateHi[1] = translateY
@@ -178,8 +178,8 @@ proto.draw = function(pickOffset) {
   }
 
   var xCoords = this.xCoords
-  var xStart = (dataBox[0] - bounds[0] - pixelSize * size * pixelRatio) / boundX
-  var xEnd   = (dataBox[2] - bounds[0] + pixelSize * size * pixelRatio) / boundX
+  var xStart = (visibleDataDomains[0] - fullDataDomains[0] - pixelSize * size * pixelRatio) / fullDataDomainX
+  var xEnd   = (visibleDataDomains[2] - fullDataDomains[0] + pixelSize * size * pixelRatio) / fullDataDomainX
 
   var firstLevel = true
 
