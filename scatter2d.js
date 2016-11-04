@@ -23,7 +23,7 @@ function Scatter2D(plot, positionBufferHi, positionBufferLo, pickBuffer, weightB
   this.pointCount       = 0
   this.color            = [1, 0, 0, 1]
   this.borderColor      = [0, 0, 0, 1]
-  this.bounds           = [Infinity, Infinity, -Infinity, -Infinity]
+  this.fullDataDomains = [Infinity, Infinity, -Infinity, -Infinity]
   this.pickOffset       = 0
   this.points           = null
   this.xCoords          = null
@@ -66,7 +66,7 @@ proto.update = function(options) {
   var packedW             = pool.mallocFloat32(2 * pointCount)
   var packed              = pool.mallocFloat64(2 * pointCount)
   packed.set(this.points)
-  this.scales             = snapPoints(packed, packedId, packedW, this.bounds)
+  this.scales             = snapPoints(packed, packedId, packedW, this.fullDataDomains)
 
   var xCoords             = pool.mallocFloat64(pointCount)
   var packedHi            = pool.mallocFloat32(2 * pointCount)
@@ -79,6 +79,8 @@ proto.update = function(options) {
   }
   this.positionBufferHi.update(packedHi)
   this.position = packed.slice()
+  this.positionHi = packedHi.slice()
+  this.positionLo = packedLo.slice()
   this.positionBufferLo.update(packedLo)
   this.pickBuffer.update(packedId)
   this.weightBuffer.update(packedW)
@@ -104,7 +106,7 @@ proto.draw = function(pickOffset) {
   var positionBufferHi = this.positionBufferHi
   var positionBufferLo = this.positionBufferLo
   var pickBuffer       = this.pickBuffer
-  var fullDataDomains  = this.bounds
+  var fullDataDomains  = this.fullDataDomains
   var size             = this.size
   var borderSize       = this.borderSize
   var gl               = plot.gl
@@ -124,8 +126,8 @@ proto.draw = function(pickOffset) {
 
   var pixelSize = Math.min(visibleDataDomainX / screenX, visibleDataDomainY / screenY)
 
-  var scaleX = 2 * fullDataDomainX / visibleDataDomainX
-  var scaleY = 2 * fullDataDomainY / visibleDataDomainY
+  var scaleX = 2 * 1 / visibleDataDomainX
+  var scaleY = 2 * 1 / visibleDataDomainY
 
   scaleHi[0] = scaleX
   scaleHi[1] = scaleY
@@ -203,8 +205,16 @@ proto.draw = function(pickOffset) {
     for(var i = 0; i < 4; i++) {
       if(i !== 2) continue
       var position = this.position[i * 2]
-      console.log(i, position, scaleX, translateX, position * scaleX + translateX, (position * scaleX + translateX) / 2  * (viewBox[2] - viewBox[0]))
-      //console.log(i, position, scaleHi[0], translateHi[0], position * scaleX + translateX)
+      var positionHi = this.positionHi[i * 2]
+      var positionLo = this.positionLo[i * 2]
+      console.log(' ')
+      console.log('double:', i, position, scaleX, translateX, position * scaleX + translateX, (position * scaleX + translateX) / 2  * (viewBox[2] - viewBox[0]))
+      console.log('single:', i, positionHi, scaleHi[0], translateHi[0], positionHi * scaleHi[0] + translateHi[0], (positionHi * scaleHi[0] + translateHi[0]) / 2 * (viewBox[2] - viewBox[0]))
+      var approx = positionHi * scaleHi[0] + translateHi[0]
+                 + positionHi * scaleLo[0] + translateLo[0]
+                 + positionLo * scaleHi[0]
+                 + positionLo * scaleLo[0]
+      console.log('approx:', i, positionHi + positionLo, scaleHi[0] + scaleLo[0], translateHi[0] + translateLo[0], approx, approx / 2 * (viewBox[2] - viewBox[0]))
     }
 
     if(!pick && firstLevel) {
