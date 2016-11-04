@@ -78,6 +78,7 @@ proto.update = function(options) {
     xCoords[i] = packed[j]
   }
   this.positionBufferHi.update(packedHi)
+  this.position = packed.slice()
   this.positionBufferLo.update(packedLo)
   this.pickBuffer.update(packedId)
   this.weightBuffer.update(packedW)
@@ -173,7 +174,8 @@ proto.draw = function(pickOffset) {
 
     shader.uniforms.useWeight = 1
     this.weightBuffer.bind()
-    shader.attributes.weight.pointer()
+    //shader.attributes.weight.pointer()
+
 
   }
 
@@ -194,8 +196,16 @@ proto.draw = function(pickOffset) {
     var startOffset = search.ge(xCoords, xStart, intervalStart, intervalEnd - 1)
     var endOffset   = search.lt(xCoords, xEnd, startOffset, intervalEnd - 1) + 1
 
-    if(endOffset > startOffset)
-      gl.drawArrays(gl.POINTS, startOffset, endOffset - startOffset)
+    if(!pick)
+    if(true || endOffset > startOffset)
+      gl.drawArrays(gl.POINTS, 0, 4)
+
+    for(var i = 0; i < 4; i++) {
+      if(i !== 2) continue
+      var position = this.position[i * 2]
+      console.log(i, position, scaleX, translateX, position * scaleX + translateX, (position * scaleX + translateX) / 2  * (viewBox[2] - viewBox[0]))
+      //console.log(i, position, scaleHi[0], translateHi[0], position * scaleX + translateX)
+    }
 
     if(!pick && firstLevel) {
       firstLevel = false
