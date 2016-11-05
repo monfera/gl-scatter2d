@@ -136,13 +136,17 @@ proto.draw = function(pickOffset) {
   scaleLo[1] = scaleY - scaleHi[1]
 
   var translateX = 2 * (fullDataDomains[0] - visibleDataDomains[0]) / visibleDataDomainX - 1
+  var translateXn = (2 * (fullDataDomains[0] - visibleDataDomains[0]) / visibleDataDomainX - 1)
+                  / (2 / visibleDataDomainX)
   var translateY = 2 * (fullDataDomains[1] - visibleDataDomains[1]) / visibleDataDomainY - 1
+  var translateYn = (2 * (fullDataDomains[1] - visibleDataDomains[1]) / visibleDataDomainY - 1)
+    / (2 / visibleDataDomainY)
 
-  translateHi[0] = translateX
-  translateHi[1] = translateY
+  translateHi[0] = translateXn
+  translateHi[1] = translateYn
 
-  translateLo[0] = translateX - translateHi[0]
-  translateLo[1] = translateY - translateHi[1]
+  translateLo[0] = translateXn - translateHi[0]
+  translateLo[1] = translateYn - translateHi[1]
 
   shader.bind()
   shader.uniforms.scaleHi     = scaleHi
@@ -207,14 +211,19 @@ proto.draw = function(pickOffset) {
       var position = this.position[i * 2]
       var positionHi = this.positionHi[i * 2]
       var positionLo = this.positionLo[i * 2]
-      console.log(' ')
-      console.log('double:', i, position, scaleX, translateX, position * scaleX + translateX, (position * scaleX + translateX) / 2  * (viewBox[2] - viewBox[0]))
-      console.log('single:', i, positionHi, scaleHi[0], translateHi[0], positionHi * scaleHi[0] + translateHi[0], (positionHi * scaleHi[0] + translateHi[0]) / 2 * (viewBox[2] - viewBox[0]))
-      var approx = positionHi * scaleHi[0] + translateHi[0]
-                 + positionHi * scaleLo[0] + translateLo[0]
-                 + positionLo * scaleHi[0]
-                 + positionLo * scaleLo[0]
-      console.log('approx:', i, positionHi + positionLo, scaleHi[0] + scaleLo[0], translateHi[0] + translateLo[0], approx, approx / 2 * (viewBox[2] - viewBox[0]))
+      if(0) {
+        var real = position * scaleX + translateX
+        console.log(' ')
+        console.log('double:', i, position, scaleX, translateX, real, real / 2 * (viewBox[2] - viewBox[0]))
+        console.log('single:', i, positionHi, scaleHi[0], translateHi[0], positionHi * scaleHi[0] + translateHi[0], (positionHi * scaleHi[0] + translateHi[0]) / 2 * (viewBox[2] - viewBox[0]))
+        var approx = positionHi * scaleHi[0] + translateHi[0]
+          + positionHi * scaleLo[0] + translateLo[0]
+          + positionLo * scaleHi[0]
+          + positionLo * scaleLo[0]
+        console.log('approx:', i, positionHi + positionLo, scaleHi[0] + scaleLo[0], translateHi[0] + translateLo[0], approx, approx / 2 * (viewBox[2] - viewBox[0]))
+        var alternative = (position + translateXn) * scaleX
+        console.log('alternative:', i, position, scaleX, translateXn, alternative, alternative / 2 * (viewBox[2] - viewBox[0]))
+      }
     }
 
     if(!pick && firstLevel) {
